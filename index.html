@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>
+        Hello World !
+    </title>
+    <script src="node_modules/hammerjs/hammer.min.js"></script>
+</head>
+
+<body>
+    <style>
+        .theatre {
+            position: relative;
+        }
+        .block {
+            position: absolute;
+            border: 1px solid #999;
+        }
+        .right {
+            float: right;
+        }
+        .chairs {
+            pointer-events: none;
+        }
+        .chair{
+            width: 20px;
+            height: 20px;
+            background: red;
+            border-radius: 50%;
+            margin: 1px;
+            display: inline-block;
+            pointer-events: none;
+        }
+    </style>
+
+    <label>Rows: </label><input id="rows" type="number" /> <br/>
+    <label>Columns: </label><input id="columns" type="number" /> <br/>
+    <button onclick="addBlock()">
+        Add Block
+    </button>
+    <br/>
+    <button onclick="getJSON()">
+        Get All (JSON)
+    </button>
+
+    <div class="json-result"></div>
+
+    <div id="theatre">
+    </div>
+
+    <script>
+
+        function getJSON() {
+            blocks = []
+            document.querySelectorAll('.block').forEach(el => {
+                let xy = el.style.transform.split('translate')[1].split(' rotate')[0].split(', ');
+                let x = +xy[0].replace('(', '').replace('px', '') || 0;
+                let y = +xy[1].replace(')', '').replace('px', '') || 0;
+                let deg = +el.style.transform.split('rotate(')[1].split('deg)')[0] || 0;
+                blocks.push({rows: el.dataset.rows, columns: el.dataset.columns, x: x, y: y, deg: deg});
+            });
+            document.querySelector('.json-result').innerHTML = JSON.stringify(blocks);
+        }
+
+        function addBlock() {
+            rows = document.querySelector('#rows').value
+            columns = document.querySelector('#columns').value
+            chairs = '';
+            for (let x = 0 ; x < rows ; x++) {
+                for (let y = 0 ; y < columns ; y++) {
+                    chairs += `<span class="chair"></span>`;
+                }
+                chairs += '<br/>';
+            }
+            document.getElementById('theatre').insertAdjacentHTML('beforeend', `
+            <div data-rows="${rows}" data-columns="${columns}" class="block" style="transform: scale(1) translate(0px, 0px) rotate(0deg);">
+                <div class="controls">
+                    <button class="left"><</button>
+                    <button class="right">></button>
+                </div>
+                <div class="chairs">
+                    ${chairs}
+                </div>
+            </div>`);
+            const el = document.querySelectorAll('.block')[document.querySelectorAll('.block').length - 1];
+            el.querySelector('.controls .left').addEventListener('click', function() { rotateEl('left', this) })
+            el.querySelector('.controls .right').addEventListener('click', function (){ rotateEl('right', this) })
+            addHammer(el)
+        }
+        function rotateEl(direction, e) {
+            const el = e;
+            let xy = el.parentElement.parentElement.style.transform.split('translate')[1].split(' rotate')[0].split(', ');
+            let x = +xy[0].replace('(', '').replace('px', '') || 0;
+            let y = +xy[1].replace(')', '').replace('px', '') || 0;
+            let deg = +el.parentElement.parentElement.style.transform.split('rotate(')[1].split('deg)')[0] || 0;
+            switch (direction) {
+                case 'left':
+                    deg -= 10;
+                    break;
+                case 'right':
+                    deg += 10;
+                    break;
+            }
+            el.parentElement.parentElement.style.transform = `scale(1) translate(${x}px, ${y}px) rotate(${deg}deg)`;
+        }
+        document.body.addEventListener('touchmove', function (event) {
+            event.preventDefault();
+        }, false);
+
+        function addHammer(element) {
+            let stage = element;
+            let mc = new Hammer.Manager(stage);
+
+            let rotate = new Hammer.Rotate();
+            let pinch = new Hammer.Pinch();
+            let pan = new Hammer.Pan();
+
+            mc.add([pan]);
+            // mc.get('pinch').set({ enable: true })
+            // mc.get('rotate').set({ enable: true })
+
+            let adjustScale = 1;
+            let currentScale = null;
+            let currentRotation = null;
+            let adjustRotation = 0;
+
+            let adjustDeltaX = 0;
+            let adjustDeltaY = 0;
+            let currentDeltaX = null;
+            let currentDeltaY = null;
+
+            mc.on("pan", function (e) {
+                if (e.target && e.target.style.transform) {
+                    let transforms = [];
+                    currentRotation = Math.round(e.rotation || +e.target.style.transform.split('rotate(')[1].split('deg)')[0]);
+
+
+                    let xy = e.target.style.transform.split('translate')[1].split(' rotate')[0].split(', ');
+                    let x = +xy[0].replace('(', '').replace('px', '') || 0;
+                    let y = +xy[1].replace(')', '').replace('px', '') || 0;
+
+
+                    currentScale = adjustScale * e.scale;
+                    currentDeltaX = (adjustDeltaX + ((e.deltaX) / currentScale)) || x;
+                    currentDeltaY = (adjustDeltaY + ((e.deltaY) / currentScale)) || y;
+
+
+                    transforms.push('scale(' + currentScale + ')');
+                    transforms.push('translate(' + currentDeltaX + 'px,' + currentDeltaY + 'px)');
+                    transforms.push('rotate(' + currentRotation + 'deg)');
+                    stage.style.transform = transforms.join(' ');
+                }
+            })
+
+            mc.on("panend", function (e) {
+                adjustScale = currentScale;
+                adjustRotation = currentRotation;
+                adjustDeltaX = currentDeltaX;
+                adjustDeltaY = currentDeltaY;
+            })
+        };
+    </script>
+
+</body>
+
+</html>
