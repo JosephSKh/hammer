@@ -25,34 +25,39 @@
         .chairs {
             pointer-events: none;
         }
-        .chair{
-            width: 20px;
-            height: 20px;
-            background: red;
+        .chair-properties {
+            width: 50px;
+            height: 50px;
+            /* background: red; */
             border-radius: 50%;
+            pointer-events: none;
+            background-image: url(seat.png);
+            background-size: contain;
+        }
+        .chair{
             margin: 1px;
             display: inline-block;
-            pointer-events: none;
         }
         .round-table {
             width: 100px;
             height: 100px;
-            background: red;
+            background: orange;
             border-radius: 50%;
             position: relative;
         }
         .round-chair {
             position: absolute;
-            width: 20px;
-            height: 20px;
-            background: orange;
-            border-radius: 50%;
-            top: -25px;
-            left: 40px;
-            transform-origin: 10px 75px;
+            top: -55px;
+            left: 25px;
+            transform-origin: 25px 105px;
         }
     </style>
 
+    <label>Group: </label> <select id="group">
+        <option value="vip">VIP</option>
+        <option value="plus">Plus</option>
+        <option value="normal">Normal</option>
+    </select> <br/>
     <label>Rows: </label><input id="rows" type="number" /> <br/>
     <label>Columns: </label><input id="columns" type="number" /> <br/>
     <label>Chairs: </label><input id="chairs" type="number" /> <br/>
@@ -82,7 +87,7 @@
                 let x = +xy[0].replace('(', '').replace('px', '') || 0;
                 let y = +xy[1].replace(')', '').replace('px', '') || 0;
                 let deg = +el.style.transform.split('rotate(')[1].split('deg)')[0] || 0;
-                blocks.push({rows: el.dataset.rows, columns: el.dataset.columns, chairs: el.dataset.chairs, x: x, y: y, deg: deg});
+                blocks.push({groip: el.dataset.group, rows: el.dataset.rows, columns: el.dataset.columns, chairs: el.dataset.chairs, x: x, y: y, deg: deg});
             });
             document.querySelector('.json-result').innerHTML = JSON.stringify(blocks);
         }
@@ -90,15 +95,16 @@
         function addBlock() {
             rows = document.querySelector('#rows').value
             columns = document.querySelector('#columns').value
+            group = document.querySelector('#group').value
             chairs = '';
             for (let x = 0 ; x < rows ; x++) {
                 for (let y = 0 ; y < columns ; y++) {
-                    chairs += `<span class="chair"></span>`;
+                    chairs += `<span class="chair chair-properties"></span>`;
                 }
                 chairs += '<br/>';
             }
             document.getElementById('theatre').insertAdjacentHTML('beforeend', `
-            <div data-rows="${rows}" data-columns="${columns}" class="block" style="transform: scale(1) translate(1px, 1px) rotate(0deg);">
+            <div data-group="${group}" data-rows="${rows}" data-columns="${columns}" class="block" style="transform: scale(1) translate(1px, 1px) rotate(0deg);">
                 <div class="controls">
                     <button class="left"><</button>
                     <button class="right">></button>
@@ -114,22 +120,30 @@
         }
         function addRoundTable() {
             numOfChairs = document.querySelector('#chairs').value
+            group = document.querySelector('#group').value
             chairs = '';
             deg = 360 / numOfChairs;
             for (let y = 0 ; y < numOfChairs ; y++) {
-                chairs += `<span class="round-chair" style="transform: rotate(${deg * y}deg)"></span>`;
+                chairs += `<span class="round-chair chair-properties" style="transform: rotate(${deg * y}deg)"></span>`;
             }
 
             document.getElementById('theatre').insertAdjacentHTML('beforeend',`
-            <div data-chairs="${numOfChairs}" style="transform: scale(1) translate(1px, 1px) rotate(0deg);"  class="round-table">
-                ${chairs}
+            <div data-group="${group}" data-chairs="${numOfChairs}" style="transform: scale(1) translate(1px, 1px) rotate(0deg);"  class="round-table">
+                <div class="controls">
+                    <button class="left"><</button>
+                    <button class="right">></button>
+                </div>
+                <div class="chairs">
+                    ${chairs}
+                </div>
             </div>`);
 
             const el = document.querySelectorAll('.round-table')[document.querySelectorAll('.round-table').length - 1];
-            // el.querySelector('.controls .left').addEventListener('click', function() { rotateEl('left', this) })
-            // el.querySelector('.controls .right').addEventListener('click', function (){ rotateEl('right', this) })
+            el.querySelector('.controls .left').addEventListener('click', function() { rotateEl('left', this) })
+            el.querySelector('.controls .right').addEventListener('click', function (){ rotateEl('right', this) })
             addHammer(el)
         }
+
         function rotateEl(direction, e) {
             const el = e;
             let xy = el.parentElement.parentElement.style.transform.split('translate')[1].split(' rotate')[0].split(', ');
