@@ -15,6 +15,12 @@
         .theatre {
             position: relative;
         }
+        /* .controls {
+            opacity: 0;
+        } */
+        .block:hover .controls, .round-table:hover .controls {
+            opacity: 1;
+        }
         .block {
             position: absolute;
             border: 1px solid #999;
@@ -50,6 +56,17 @@
             top: -55px;
             left: 25px;
             transform-origin: 25px 105px;
+        }
+        .json-result {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 300px;
+            padding: 5px;
+            box-sizing: border-box;
+            word-break: break-word;
+            border-left: 2px solid red;
+            height: 100%;
         }
     </style>
 
