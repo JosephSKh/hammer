@@ -33,12 +33,34 @@
             display: inline-block;
             pointer-events: none;
         }
+        .round-table {
+            width: 100px;
+            height: 100px;
+            background: red;
+            border-radius: 50%;
+            position: relative;
+        }
+        .round-chair {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: orange;
+            border-radius: 50%;
+            top: -25px;
+            left: 40px;
+            transform-origin: 10px 75px;
+        }
     </style>
 
     <label>Rows: </label><input id="rows" type="number" /> <br/>
     <label>Columns: </label><input id="columns" type="number" /> <br/>
+    <label>Chairs: </label><input id="chairs" type="number" /> <br/>
     <button onclick="addBlock()">
         Add Block
+    </button>
+    <br/>
+    <button onclick="addRoundTable()">
+        Add Round Table
     </button>
     <br/>
     <button onclick="getJSON()">
@@ -54,12 +76,12 @@
 
         function getJSON() {
             blocks = []
-            document.querySelectorAll('.block').forEach(el => {
+            document.querySelectorAll('.block, .round-table').forEach(el => {
                 let xy = el.style.transform.split('translate')[1].split(' rotate')[0].split(', ');
                 let x = +xy[0].replace('(', '').replace('px', '') || 0;
                 let y = +xy[1].replace(')', '').replace('px', '') || 0;
                 let deg = +el.style.transform.split('rotate(')[1].split('deg)')[0] || 0;
-                blocks.push({rows: el.dataset.rows, columns: el.dataset.columns, x: x, y: y, deg: deg});
+                blocks.push({rows: el.dataset.rows, columns: el.dataset.columns, chairs: el.dataset.chairs, x: x, y: y, deg: deg});
             });
             document.querySelector('.json-result').innerHTML = JSON.stringify(blocks);
         }
@@ -87,6 +109,24 @@
             const el = document.querySelectorAll('.block')[document.querySelectorAll('.block').length - 1];
             el.querySelector('.controls .left').addEventListener('click', function() { rotateEl('left', this) })
             el.querySelector('.controls .right').addEventListener('click', function (){ rotateEl('right', this) })
+            addHammer(el)
+        }
+        function addRoundTable() {
+            numOfChairs = document.querySelector('#chairs').value
+            chairs = '';
+            deg = 360 / numOfChairs;
+            for (let y = 0 ; y < numOfChairs ; y++) {
+                chairs += `<span class="round-chair" style="transform: rotate(${deg * y}deg)"></span>`;
+            }
+
+            document.getElementById('theatre').insertAdjacentHTML('beforeend',`
+            <div data-chairs="${numOfChairs}" style="transform: scale(1) translate(1px, 1px) rotate(0deg);"  class="round-table">
+                ${chairs}
+            </div>`);
+
+            const el = document.querySelectorAll('.round-table')[document.querySelectorAll('.round-table').length - 1];
+            // el.querySelector('.controls .left').addEventListener('click', function() { rotateEl('left', this) })
+            // el.querySelector('.controls .right').addEventListener('click', function (){ rotateEl('right', this) })
             addHammer(el)
         }
         function rotateEl(direction, e) {
