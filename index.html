@@ -8,11 +8,12 @@
         Hello World !
     </title>
     <script src="hammer.min.js"></script>
+    <script src="jquery.min.js"></script>
 </head>
 
 <body>
     <style>
-        .theatre {
+        #theatre {
             position: relative;
         }
         /* .controls {
@@ -31,15 +32,19 @@
         .chairs {
             pointer-events: none;
         }
+        .chairs.editable {
+            pointer-events: initial;
+        }
         .chair-properties {
             width: 50px;
             height: 50px;
-            /* background: red; */
             border-radius: 50%;
-            pointer-events: none;
             background-image: url(seat.png);
             background-size: contain;
         }
+        .chair-properties.disabled {
+            filter: grayscale(1);
+        } 
         .chair{
             margin: 1px;
             display: inline-block;
@@ -57,6 +62,27 @@
             left: 25px;
             transform-origin: 25px 105px;
         }
+        .area-name {
+            position: absolute;
+            top: -80px;
+            left: 50%;
+            transform: translate(-50%);
+            width: 200px;
+            text-align: center;
+            background: #eee;
+        }
+        .block .area-name {
+            top: -25px;
+        }
+        .delete, .edit {
+            font-size: 10px;
+        }
+        button {
+            cursor: pointer;
+        }
+        .controls {
+            min-width: 137px;
+        }
         /* .json-result {
             position: fixed;
             top: 0;
@@ -70,16 +96,22 @@
         } */
     </style>
 
+    <label>Add Group: </label><input id="groupName" /> <button onclick="addGroup()">Add Group</button> <br/>
     <label>Group: </label> <select id="group">
         <option value="vip">VIP</option>
         <option value="plus">Plus</option>
         <option value="normal">Normal</option>
     </select> <br/>
+    <label>Name: </label><input id="areaName" /> <br/>
     <label>Rows: </label><input id="rows" type="number" /> <br/>
     <label>Columns: </label><input id="columns" type="number" /> <br/>
     <label>Chairs: </label><input id="chairs" type="number" /> <br/>
     <button onclick="addBlock()">
         Add Block
+    </button>
+    <br/>
+    <button onclick="addStandingArea()">
+        Add Standing Area
     </button>
     <br/>
     <button onclick="addRoundTable()">
@@ -103,8 +135,25 @@
                 let xy = el.style.transform.split('translate')[1].split(' rotate')[0].split(', ');
                 let x = +xy[0].replace('(', '').replace('px', '') || 0;
                 let y = +xy[1].replace(')', '').replace('px', '') || 0;
+                let name = el.querySelector('.area-name').innerHTML;
                 let deg = +el.style.transform.split('rotate(')[1].split('deg)')[0] || 0;
-                blocks.push({groip: el.dataset.group, rows: el.dataset.rows, columns: el.dataset.columns, chairs: el.dataset.chairs, x: x, y: y, deg: deg});
+                let chairs = [];
+                $(el).find('.chair-properties').each((i, c) => {
+                    chairs.push({
+                        id: $(c).data('chair-id'),
+                        disabled: $(c).hasClass('disabled'),
+                        isBooked: false
+                    })
+                })
+                blocks.push({name,
+                            group: el.dataset.group,
+                            rows: el.dataset.rows,
+                            columns: el.dataset.columns,
+                            numOfChairs: el.dataset.chairs,
+                            x,
+                            y,
+                            deg,
+                            chairs});
             });
             document.querySelector('.json-result').innerHTML = JSON.stringify(blocks);
         }
@@ -113,10 +162,11 @@
             rows = document.querySelector('#rows').value
             columns = document.querySelector('#columns').value
             group = document.querySelector('#group').value
+            areaName = document.getElementById('areaName').value || `block-${new Date().getTime()}`;
             chairs = '';
             for (let x = 0 ; x < rows ; x++) {
                 for (let y = 0 ; y < columns ; y++) {
-                    chairs += `<span class="chair chair-properties"></span>`;
+                    chairs += `<span data-chair-id="${areaName}-${x}-${y}" class="chair chair-properties"></span>`;
                 }
                 chairs += '<br/>';
             }
@@ -124,6 +174,9 @@
             <div data-group="${group}" data-rows="${rows}" data-columns="${columns}" class="block" style="transform: scale(1) translate(1px, 1px) rotate(0deg);">
                 <div class="controls">
                     <button class="left"><</button>
+                    <span class="area-name">${areaName}</span>
+                    <button class="delete">Delete</button>
+                    <button class="edit">Edit</button>
                     <button class="right">></button>
                 </div>
                 <div class="chairs">
@@ -133,21 +186,51 @@
             const el = document.querySelectorAll('.block')[document.querySelectorAll('.block').length - 1];
             el.querySelector('.controls .left').addEventListener('click', function() { rotateEl('left', this) })
             el.querySelector('.controls .right').addEventListener('click', function (){ rotateEl('right', this) })
+            el.querySelector('.controls .delete').addEventListener('click', function (){ deleteEl(this) })
             addHammer(el)
         }
+
+        function addStandingArea() {
+            rows = document.querySelector('#rows').value
+            columns = document.querySelector('#columns').value
+            group = document.querySelector('#group').value
+            personArea = 30;
+            areaName = document.getElementById('areaName').value || `standing-area-${new Date().getTime()}`;
+            document.getElementById('theatre').insertAdjacentHTML('beforeend', `
+            <div data-group="${group}" data-rows="${rows}" data-columns="${columns}" class="block"
+            style="transform: scale(1) translate(1px, 1px) rotate(0deg); width: ${personArea*columns}px; height: ${personArea*rows}px">
+                <div class="controls">
+                    <button class="left"><</button>
+                    <span class="area-name">${areaName}</span>
+                    <button class="delete">Delete</button>
+                    <button class="edit">Edit</button>
+                    <button class="right">></button>
+                </div>
+            </div>`);
+            const el = document.querySelectorAll('.block')[document.querySelectorAll('.block').length - 1];
+            el.querySelector('.controls .left').addEventListener('click', function() { rotateEl('left', this) })
+            el.querySelector('.controls .right').addEventListener('click', function (){ rotateEl('right', this) })
+            el.querySelector('.controls .delete').addEventListener('click', function (){ deleteEl(this) })
+            addHammer(el)
+        }
+
         function addRoundTable() {
             numOfChairs = document.querySelector('#chairs').value
             group = document.querySelector('#group').value
+            areaName = document.getElementById('areaName').value || `round-table-${new Date().getTime()}`
             chairs = '';
             deg = 360 / numOfChairs;
             for (let y = 0 ; y < numOfChairs ; y++) {
-                chairs += `<span class="round-chair chair-properties" style="transform: rotate(${deg * y}deg)"></span>`;
+                chairs += `<span data-chair-id="${areaName}-${y}" class="round-chair chair-properties" style="transform: rotate(${deg * y}deg)"></span>`;
             }
 
             document.getElementById('theatre').insertAdjacentHTML('beforeend',`
             <div data-group="${group}" data-chairs="${numOfChairs}" style="transform: scale(1) translate(1px, 1px) rotate(0deg);"  class="round-table">
                 <div class="controls">
                     <button class="left"><</button>
+                    <span class="area-name">${areaName}</span>
+                    <button class="delete">Delete</button>
+                    <button class="edit">Edit</button>
                     <button class="right">></button>
                 </div>
                 <div class="chairs">
@@ -158,7 +241,16 @@
             const el = document.querySelectorAll('.round-table')[document.querySelectorAll('.round-table').length - 1];
             el.querySelector('.controls .left').addEventListener('click', function() { rotateEl('left', this) })
             el.querySelector('.controls .right').addEventListener('click', function (){ rotateEl('right', this) })
+            el.querySelector('.controls .delete').addEventListener('click', function (){ deleteEl(this) })
             addHammer(el)
+        }
+
+        function addGroup() {
+            document.getElementById('group').insertAdjacentHTML('beforeend', `<option value="${document.querySelector('#groupName').value}">${document.querySelector('#groupName').value}</option>`);
+        }
+
+        function deleteEl (el) {
+            el.parentElement.parentElement.remove();
         }
 
         function rotateEl(direction, e) {
@@ -180,6 +272,13 @@
         document.body.addEventListener('touchmove', function (event) {
             event.preventDefault();
         }, false);
+
+        $('#theatre').on('click', '.chair-properties', function(){
+            $(this).toggleClass('disabled')
+        })
+        $('#theatre').on('click', '.edit', function(){
+            $(this).parent().parent().find('.chairs').toggleClass('editable')
+        })
 
         function addHammer(element) {
             let stage = element;
